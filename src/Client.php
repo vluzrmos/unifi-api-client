@@ -46,12 +46,17 @@ class Client
     /**
      * @var ClientInterface|null
      */
-    private $client;
+    protected $client;
 
     /**
      * @var array
      */
-    private $requestOptions;
+    protected $requestOptions;
+
+    /**
+     * @var array
+     */
+    protected $loginData;
 
     /**
      * @param ClientInterface $client
@@ -66,50 +71,18 @@ class Client
     }
 
     /**
-     * Login to the Unifi controller.
-     * You need to login before you can make other api requests.
-     *
-     * @param string $username username
-     * @param string $password password
-     *
-     * @throws GuzzleException in case of a login failure.
+     * @param array $defaultRequestOptions
+     * @return mixed
      */
-    public function login($username, $password)
+    protected function getRequestOptions(array $defaultRequestOptions)
     {
-        $this->post(
-            '/api/login',
-            ['username' => $username, 'password' => $password]
+        return array_merge(
+            [
+                'cookies' => new CookieJar(),
+                'verify' => false,
+            ],
+            $defaultRequestOptions
         );
-    }
-
-    /**
-     * @throws GuzzleException in case of a failure.
-     */
-    public function logout()
-    {
-        $this->client->request('get', '/logout', ['allow_redirects' => false] + $this->requestOptions);
-    }
-
-    /**
-     * @param string $site
-     *
-     * @return ResponseInterface
-     * @throws GuzzleException
-     */
-    public function statistics($site)
-    {
-        return $this->get('/api/s/' . $site . '/stat/sta');
-    }
-
-    /**
-     * @param string $site
-     *
-     * @return ResponseInterface
-     * @throws GuzzleException
-     */
-    public function deviceStatistics($site)
-    {
-        return $this->get('/api/s/' . $site. '/stat/device');
     }
 
     /**
@@ -126,32 +99,90 @@ class Client
     public function authorizeGuest($site, $mac, $minutes, array $data = [])
     {
         return $this->post(
-            '/api/s/' . $site . '/cmd/stamgr',
+            '/api/s/'.$site.'/cmd/stamgr',
             [
                 'cmd' => 'authorize-guest',
                 'mac' => $mac,
-                'minutes' => $minutes
+                'minutes' => $minutes,
             ] + $data
         );
     }
 
     /**
-     * Unauthorize a guest by mac address.
-     *
      * @param string $site
-     * @param string $mac
      *
      * @return ResponseInterface
+     * @throws GuzzleException
      */
-    public function unauthorizeGuest($site, $mac)
+    public function deviceStatistics($site)
     {
+        return $this->get('/api/s/'.$site.'/stat/device');
+    }
+
+    /**
+     * @throws GuzzleException in case of a failure.
+     */
+    public function logout()
+    {
+        $this->client->request('get', '/logout', ['allow_redirects' => false] + $this->requestOptions);
+    }
+
+    /**
+     * @param string $site
+     * @param string $mac
+     * @return ResponseInterface
+     */
+    public function reconnectClient($site, $mac)
+    {
+        return $this->post(
+            '/api/s/'.$site.'/cmd/stamgr',
+            [
+                'cmd' => 'kick-sta',
+                'mac' => $mac,
+            ]
+        );
+    }
+
+    /**
+     * Login to the Unifi controller.
+     * You need to login before you can make other api requests.
+     *
+     * @param string $username username
+     * @param string $password password
+     *
+     * @return ResponseInterface
+     * @throws GuzzleException in case of a login failure.
+     */
+    public function relogin($username = null, $password = null)
+    {
+        if (!$username) {
+            $username = isset($this->loginData['username']) ? $this->loginData['username'] : null;
+        }
+
+        if (!$password) {
+            $password = isset($this->loginData['password']) ? $this->loginData['password'] : null;
+        }
+
+        return $this->login($username, $password);
+    }
+
+    /**
+     * Login to the Unifi controller.
+     * You need to login before you can make other api requests.
+     *
+     * @param string $username username
+     * @param string $password password
+     *
+     * @return ResponseInterface
+     * @throws GuzzleException in case of a login failure.
+     */
+    public function login($username, $password)
+    {
+        $this->loginData = ['username' => $username, 'password' => $password];
 
         return $this->post(
-            '/api/s/' . $site . '/cmd/stamgr',
-            [
-                'cmd' => 'unauthorize-guest',
-                'mac' => $mac
-            ]
+            '/api/login',
+            $this->loginData
         );
     }
 
@@ -172,6 +203,17 @@ class Client
     }
 
     /**
+     * @param string $site
+     *
+     * @return ResponseInterface
+     * @throws GuzzleException
+     */
+    public function statistics($site)
+    {
+        return $this->get('/api/s/'.$site.'/stat/sta');
+    }
+
+    /**
      * @param string $url
      * @param array $data
      *
@@ -189,14 +231,22 @@ class Client
         return $this->client->request('get', $url, $requestOptions);
     }
 
-    private function getRequestOptions(array $defaultRequestOptions)
+    /**
+     * Unauthorize a guest by mac address.
+     *
+     * @param string $site
+     * @param string $mac
+     *
+     * @return ResponseInterface
+     */
+    public function unauthorizeGuest($site, $mac)
     {
-        return array_merge(
+        return $this->post(
+            '/api/s/'.$site.'/cmd/stamgr',
             [
-                'cookies' => new CookieJar(),
-                'verify' => false
-            ],
-            $defaultRequestOptions
+                'cmd' => 'unauthorize-guest',
+                'mac' => $mac,
+            ]
         );
     }
 }
