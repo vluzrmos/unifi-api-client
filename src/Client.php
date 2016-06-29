@@ -187,6 +187,14 @@ class Client
     }
 
     /**
+     * @param array $loginData
+     */
+    public function setLoginData(array $loginData)
+    {
+        $this->loginData = $loginData;
+    }
+
+    /**
      * @param string $url (relative) url to the api endpoint
      * @param array $data data to be sent with the request.
      *
