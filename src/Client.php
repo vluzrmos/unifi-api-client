@@ -128,6 +128,14 @@ class Client
     }
 
     /**
+     * @return ResponseInterface
+     */
+    public function sites()
+    {
+        return $this->post('/api/self/sites');
+    }
+
+    /**
      * @param string $site
      * @param string $mac
      * @return ResponseInterface
