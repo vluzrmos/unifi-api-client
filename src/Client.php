@@ -132,7 +132,7 @@ class Client
      */
     public function sites()
     {
-        return $this->post('/api/self/sites');
+        return $this->get('/api/self/sites');
     }
 
     /**
