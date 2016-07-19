@@ -71,6 +71,14 @@ class Client
     }
 
     /**
+     * @return ClientInterface|null
+     */
+    public function httpClient()
+    {
+        return $this->client;
+    }
+
+    /**
      * @param array $defaultRequestOptions
      * @return mixed
      */
@@ -124,7 +132,7 @@ class Client
      */
     public function logout()
     {
-        $this->client->request('get', '/logout', ['allow_redirects' => false] + $this->requestOptions);
+        $this->httpClient()->request('get', '/logout', ['allow_redirects' => false] + $this->requestOptions);
     }
 
     /**
@@ -203,6 +211,16 @@ class Client
     }
 
     /**
+     * @param $url
+     * @param array $data
+     * @return ResponseInterface
+     */
+    public function put($url, array $data = [])
+    {
+        return $this->httpClient()->request('put', $url, ['json' => $data] + $this->requestOptions);
+    }
+    
+    /**
      * @param string $url (relative) url to the api endpoint
      * @param array $data data to be sent with the request.
      *
@@ -211,7 +229,7 @@ class Client
      */
     public function post($url, array $data = [])
     {
-        return $this->client->request(
+        return $this->httpClient()->request(
             'post',
             $url,
             ['json' => $data] + $this->requestOptions
@@ -244,7 +262,7 @@ class Client
             $requestOptions['query'] = $data;
         }
 
-        return $this->client->request('get', $url, $requestOptions);
+        return $this->httpClient()->request('get', $url, $requestOptions);
     }
 
     /**
